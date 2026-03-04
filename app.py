@@ -37,8 +37,8 @@ class Challenge(db.Model):
 
 class Solve(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
-    challenge_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    challenge_id = db.Column(db.Integer, db.ForeignKey('challenge.id'))
 
 
 @login_manager.user_loader
