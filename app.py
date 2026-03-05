@@ -137,7 +137,6 @@ def scoreboard():
     users = User.query.order_by(User.score.desc()).all()
     return render_template("scoreboard.html", users=users)
 
-
 # --------------------
 # ONE TIME SETUP
 # --------------------
@@ -146,14 +145,20 @@ def scoreboard():
 def setup():
     db.create_all()
 
-    # Create fixed users
+    if User.query.first():
+        return "Database already initialized"
+
     user1 = User(username="Ishika",
-                 password=generate_password_hash("Ishika@13"))
+                 password=generate_password_hash("ishika@13"))
     user2 = User(username="Shreyash",
-                 password=generate_password_hash("Shreyash@30"))
+                 password=generate_password_hash("shreyash@30"))
 
     db.session.add(user1)
     db.session.add(user2)
+
+    db.session.commit()
+
+    return "Setup complete!"
 
     # Add 9 challenges (example first one)
     challenges = [
