@@ -163,7 +163,7 @@ def setup():
 
     Challenge(
         title="Boot Sequence Recovery",
-        description="Find next number: 3,8,15,24,35,?",
+        description="Find next number: 3,8,15,24,35,? | CO",
         flag="48",
         points=50,
         level=1
@@ -171,7 +171,7 @@ def setup():
 
     Challenge(
         title="Memory Parser",
-        description="Reverse string and remove vowels from 'Artificial'",
+        description="Reverse string and remove vowels from 'Artificial' | RE",
         flag="ltrfcrA",
         points=75,
         level=2
@@ -179,7 +179,7 @@ def setup():
 
     Challenge(
         title="Signal Decoder",
-        description="Decode: QVVSQXtzaWduYWxfZGVjb2RlZH0=",
+        description="Decode: QVVSQXtzaWduYWxfZGVjb2RlZH0= | UN",
         flag="AURA{signal_decoded}",
         points=100,
         level=3
@@ -187,7 +187,7 @@ def setup():
 
     Challenge(
         title="Logic Engine",
-        description="5 machines make 5 chips in 5 minutes. How long for 100 machines?",
+        description="5 machines make 5 chips in 5 minutes. How long for 100 machines? | LO",
         flag="5",
         points=100,
         level=4
@@ -195,7 +195,7 @@ def setup():
 
     Challenge(
         title="Pattern Analyzer",
-        description="Triangle Square Triangle Square Triangle ?",
+        description="Triangle Square Triangle Square Triangle ? | CK",
         flag="square",
         points=125,
         level=5
@@ -203,7 +203,7 @@ def setup():
 
     Challenge(
         title="Hidden Console",
-        description="Inspect the HTML source for the flag.",
+        description="Inspect the HTML source for the flag. | ED",
         flag="AURA{hidden_console}",
         points=150,
         level=6
@@ -211,7 +211,7 @@ def setup():
 
     Challenge(
         title="Encryption Node",
-        description="DXUD{hqfubswlrq_rqolqh}",
+        description="DXUD{hqfubswlrq_rqolqh} | AU",
         flag="AURA{encryption_online}",
         points=175,
         level=7
@@ -219,7 +219,7 @@ def setup():
 
     Challenge(
         title="System Patch",
-        description="Fix code: return a-b → ?",
+        description="Fix code: return a-b → ? | RA",
         flag="return a+b",
         points=200,
         level=8
@@ -227,8 +227,8 @@ def setup():
 
     Challenge(
         title="Core Vault",
-        description="Final system unlock key",
-        flag="AURA{core_unlocked}",
+        description="Final system unlock key | COMBINE ALL CORE FRAGMENT",
+        flag="AURA{CORE_UNLOCKED_AURA}",
         points=300,
         level=9
     )
