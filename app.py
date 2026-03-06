@@ -1,7 +1,8 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
@@ -98,15 +99,36 @@ def dashboard():
 # CHALLENGE VIEW
 # --------------------
 
+LOCKOUT_DURATION = 60   # seconds
+MAX_WRONG_ATTEMPTS = 3  # wrong attempts before lockout
+
 @app.route("/challenge/<int:id>", methods=["GET", "POST"])
 @login_required
 def challenge(id):
     challenge = Challenge.query.get_or_404(id)
 
+    # Session keys for this specific user + challenge
+    attempt_key = f"attempts_{current_user.id}_{id}"
+    lockout_key = f"lockout_{current_user.id}_{id}"
+
+    # Check if currently locked out
+    lockout_until = session.get(lockout_key, 0)
+    now = time.time()
+    locked_out = now < lockout_until
+    lockout_remaining = max(0, int(lockout_until - now))
+
     if request.method == "POST":
+
+        # Block submission if locked out
+        if locked_out:
+            return f"LOCKED:{lockout_remaining}"
+
         submitted_flag = request.form.get("flag")
 
         if submitted_flag == challenge.flag:
+            # Reset attempts on correct
+            session.pop(attempt_key, None)
+            session.pop(lockout_key, None)
 
             already_solved = Solve.query.filter_by(
                 user_id=current_user.id,
@@ -127,9 +149,23 @@ def challenge(id):
 
             return "Correct! 🎉"
 
-        return "Wrong flag ❌"
+        else:
+            # Wrong answer — increment attempt counter
+            attempts = session.get(attempt_key, 0) + 1
+            session[attempt_key] = attempts
+            remaining_attempts = MAX_WRONG_ATTEMPTS - attempts
 
-    return render_template("challenge.html", challenge=challenge)
+            if attempts >= MAX_WRONG_ATTEMPTS:
+                # Trigger lockout
+                session[lockout_key] = time.time() + LOCKOUT_DURATION
+                session[attempt_key] = 0
+                return f"LOCKED:{LOCKOUT_DURATION}"
+
+            return f"Wrong flag ❌ — {remaining_attempts} attempt(s) left before 60s lockout"
+
+    return render_template("challenge.html", challenge=challenge,
+                           locked_out=locked_out,
+                           lockout_remaining=lockout_remaining)
 
 
 # --------------------

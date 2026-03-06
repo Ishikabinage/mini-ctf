@@ -18,16 +18,28 @@
             {{ challenge.description }}
         </div>
 
+        {% if locked_out %}
+        <div class="lockout-bar" id="lockoutBar">
+            <span class="lockout-icon">🔒</span>
+            <span>SYSTEM LOCKED — <span id="pageCountdown">{{ lockout_remaining }}</span>s remaining</span>
+        </div>
+        {% else %}
+        <div class="lockout-bar" id="lockoutBar" style="display:none;"></div>
+        {% endif %}
+
         <form method="POST" class="flag-form" id="flagForm">
             <div class="input-group">
                 <label><span class="prompt">&gt;</span> SUBMIT_FLAG</label>
-                <input type="text" name="flag" id="flagInput" placeholder="FLAG{...}" autocomplete="off" required>
+                <input type="text" name="flag" id="flagInput" placeholder="FLAG{...}" autocomplete="off"
+                    {% if locked_out %}disabled{% endif %} required>
             </div>
-            <button type="submit" class="btn-primary">
-                <span>SUBMIT</span>
-                <span class="btn-arrow">⚡</span>
+            <button type="submit" class="btn-primary" id="submitBtn" {% if locked_out %}disabled{% endif %}>
+                <span id="btnText">{% if locked_out %}🔒 LOCKED{% else %}SUBMIT{% endif %}</span>
+                <span class="btn-arrow" id="btnArrow">⚡</span>
             </button>
         </form>
+
+        <div class="attempts-info" id="attemptsInfo">3 attempts before 60s lockout</div>
     </div>
 
     <div class="back-link">
@@ -35,7 +47,6 @@
     </div>
 </div>
 
-<!-- POPUP OVERLAY -->
 <div class="popup-overlay" id="popupOverlay">
     <div class="popup-box" id="popupBox">
         <div class="popup-icon" id="popupIcon"></div>
@@ -48,127 +59,120 @@
 </div>
 
 <style>
-.popup-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(6px);
-}
-.popup-overlay.active {
-    display: flex;
-    animation: fadeIn 0.2s ease;
-}
-@keyframes fadeIn {
-    from { opacity: 0; } to { opacity: 1; }
-}
-.popup-box {
-    background: #071520;
-    border: 1px solid #0d2535;
-    max-width: 460px;
-    width: 90%;
-    padding: 48px 40px;
-    text-align: center;
-    animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes popIn {
-    from { transform: scale(0.7); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-.popup-box.correct {
-    border-top: 3px solid #00f5d4;
-    box-shadow: 0 0 60px rgba(0,245,212,0.2);
-}
-.popup-box.wrong {
-    border-top: 3px solid #ff4d6d;
-    box-shadow: 0 0 60px rgba(255,77,109,0.2);
-    animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), shake 0.4s ease 0.3s;
-}
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-5px); }
-    80% { transform: translateX(5px); }
-}
-.popup-icon {
-    font-size: 3.5rem;
-    margin-bottom: 16px;
-    animation: iconPop 0.4s ease 0.2s both;
-}
-@keyframes iconPop {
-    from { transform: scale(0); } to { transform: scale(1); }
-}
-.popup-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 4px;
-    margin-bottom: 12px;
-}
-.popup-box.correct .popup-title {
-    color: #00f5d4;
-    animation: glitch 0.4s ease 0.3s both;
-}
-.popup-box.wrong .popup-title { color: #ff4d6d; }
-@keyframes glitch {
-    0% { text-shadow: none; }
-    20% { text-shadow: -2px 0 #ff4d6d, 2px 0 #00f5d4; }
-    40% { text-shadow: 2px 0 #ff4d6d, -2px 0 #00f5d4; }
-    60% { text-shadow: -1px 0 #f5a623; }
-    100% { text-shadow: 0 0 10px #00f5d4; }
-}
-.popup-msg {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem;
-    color: #4a7a8a;
-    line-height: 1.6;
-    margin-bottom: 28px;
-}
-.popup-actions { display: flex; justify-content: center; }
+.popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; justify-content:center; align-items:center; backdrop-filter:blur(6px); }
+.popup-overlay.active { display:flex; animation:fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.popup-box { background:#071520; border:1px solid #0d2535; max-width:460px; width:90%; padding:48px 40px; text-align:center; animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275); }
+@keyframes popIn { from{transform:scale(0.7);opacity:0} to{transform:scale(1);opacity:1} }
+.popup-box.correct { border-top:3px solid #00f5d4; box-shadow:0 0 60px rgba(0,245,212,0.2); }
+.popup-box.wrong { border-top:3px solid #ff4d6d; box-shadow:0 0 60px rgba(255,77,109,0.2); animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275),shake 0.4s ease 0.3s; }
+.popup-box.locked { border-top:3px solid #f5a623; box-shadow:0 0 60px rgba(245,166,35,0.2); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+.popup-icon { font-size:3.5rem; margin-bottom:16px; animation:iconPop 0.4s ease 0.2s both; }
+@keyframes iconPop { from{transform:scale(0)} to{transform:scale(1)} }
+.popup-title { font-family:'Orbitron',sans-serif; font-size:1.4rem; font-weight:700; letter-spacing:4px; margin-bottom:12px; }
+.popup-box.correct .popup-title { color:#00f5d4; animation:glitch 0.4s ease 0.3s both; }
+.popup-box.wrong .popup-title { color:#ff4d6d; }
+.popup-box.locked .popup-title { color:#f5a623; }
+@keyframes glitch { 0%{text-shadow:none} 20%{text-shadow:-2px 0 #ff4d6d,2px 0 #00f5d4} 40%{text-shadow:2px 0 #ff4d6d,-2px 0 #00f5d4} 60%{text-shadow:-1px 0 #f5a623} 100%{text-shadow:0 0 10px #00f5d4} }
+.popup-msg { font-family:'Share Tech Mono',monospace; font-size:0.85rem; color:#4a7a8a; line-height:1.6; margin-bottom:28px; }
+.popup-countdown { font-family:'Orbitron',sans-serif; font-size:2.5rem; font-weight:900; color:#f5a623; text-shadow:0 0 20px rgba(245,166,35,0.5); margin:12px 0; }
+.popup-actions { display:flex; justify-content:center; }
+.lockout-bar { display:flex; align-items:center; gap:10px; background:rgba(245,166,35,0.08); border:1px solid rgba(245,166,35,0.3); border-left:3px solid #f5a623; padding:12px 16px; margin:20px 0; font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:#f5a623; letter-spacing:1px; }
+.attempts-info { margin-top:10px; font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:rgba(74,122,138,0.6); letter-spacing:1px; }
+#submitBtn:disabled, #flagInput:disabled { opacity:0.4; cursor:not-allowed; pointer-events:none; }
 </style>
 
+{% if locked_out %}
+<meta http-equiv="refresh" content="{{ lockout_remaining }}">
+<div class="lockout-bar">
+    🔒 SYSTEM LOCKED — {{ lockout_remaining }}s remaining. Page will unlock automatically.
+</div>
+{% endif %}
+
 <script>
+function startPageCountdown(seconds) {
+    const bar = document.getElementById('lockoutBar');
+    const pageCD = document.getElementById('pageCountdown');
+    const submitBtn = document.getElementById('submitBtn');
+    const flagInput = document.getElementById('flagInput');
+    const btnText = document.getElementById('btnText');
+    bar.style.display = 'flex';
+    submitBtn.disabled = true;
+    flagInput.disabled = true;
+    btnText.textContent = '🔒 LOCKED';
+    let remaining = seconds;
+    if (pageCD) pageCD.textContent = remaining;
+    countdownInterval = setInterval(() => {
+        remaining--;
+        if (pageCD) pageCD.textContent = remaining;
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            bar.style.display = 'none';
+            submitBtn.disabled = false;
+            flagInput.disabled = false;
+            btnText.textContent = 'SUBMIT';
+            flagInput.focus();
+        }
+    }, 1000);
+}
+
 document.getElementById('flagForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const flag = document.getElementById('flagInput').value;
     const formData = new FormData();
     formData.append('flag', flag);
-
-    const response = await fetch(window.location.href, {
-        method: 'POST',
-        body: formData
-    });
+    const response = await fetch(window.location.href, { method:'POST', body:formData });
     const text = await response.text();
-
     const overlay = document.getElementById('popupOverlay');
     const box = document.getElementById('popupBox');
     const icon = document.getElementById('popupIcon');
     const title = document.getElementById('popupTitle');
     const msg = document.getElementById('popupMsg');
     const btn = document.getElementById('popupBtn');
-
+    const attemptsInfo = document.getElementById('attemptsInfo');
     box.className = 'popup-box';
 
-    if (text.includes('Correct') || text.includes('🎉')) {
+    if (text.startsWith('LOCKED:')) {
+        const secs = parseInt(text.split(':')[1]);
+        box.classList.add('locked');
+        icon.textContent = '🔒';
+        title.textContent = 'SYSTEM LOCKED';
+        msg.innerHTML = '3 wrong attempts detected.<br>Terminal locked for:';
+        let cdEl = document.getElementById('popupCountdown');
+        if (!cdEl) { cdEl = document.createElement('div'); cdEl.id = 'popupCountdown'; cdEl.className = 'popup-countdown'; msg.after(cdEl); }
+        cdEl.textContent = secs + 's';
+        btn.textContent = 'WAIT...';
+        btn.onclick = null;
+        overlay.classList.add('active');
+        startPageCountdown(secs);
+        let popupSecs = secs;
+        const popupTimer = setInterval(() => {
+            popupSecs--;
+            cdEl.textContent = popupSecs + 's';
+            if (popupSecs <= 0) { clearInterval(popupTimer); overlay.classList.remove('active'); }
+        }, 1000);
+
+    } else if (text.includes('Correct') || text.includes('🎉')) {
         box.classList.add('correct');
         icon.textContent = '🎉';
         title.textContent = 'FLAG CAPTURED';
         msg.textContent = 'Access granted. Points awarded. Proceed to next challenge.';
         btn.textContent = 'NEXT CHALLENGE →';
         btn.onclick = () => window.location.href = "{{ url_for('dashboard') }}";
+        overlay.classList.add('active');
+
     } else {
         box.classList.add('wrong');
         icon.textContent = '❌';
         title.textContent = 'ACCESS DENIED';
-        msg.textContent = 'Incorrect flag. Analyze the challenge again and try a different approach.';
+        msg.textContent = text.includes('attempt') ? text.replace('Wrong flag ❌ — ', '') : 'Incorrect flag. Try again.';
         btn.textContent = 'TRY AGAIN';
         btn.onclick = closePopup;
+        overlay.classList.add('active');
+        const match = text.match(/(\d+) attempt/);
+        if (match) attemptsInfo.textContent = match[0] + ' left before 60s lockout';
     }
-    overlay.classList.add('active');
 });
 
 function closePopup() {
@@ -176,14 +180,8 @@ function closePopup() {
     document.getElementById('flagInput').value = '';
     document.getElementById('flagInput').focus();
 }
-
-document.getElementById('popupOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closePopup();
-});
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closePopup();
-});
+document.getElementById('popupOverlay').addEventListener('click', function(e) { if (e.target===this) closePopup(); });
+document.addEventListener('keydown', function(e) { if (e.key==='Escape') closePopup(); });
 </script>
 
 {% endblock %}
